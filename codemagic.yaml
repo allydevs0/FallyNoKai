@@ -1,17 +1,14 @@
 workflows:
   ios-workflow:
-    name: Build iOS IPA
-    instance_type: mac_mini_m1
-    max_build_duration: 60
+    name: Build iOS IPA no signing
+    instance_type: macos-xcode-15.2
     environment:
       flutter: stable
       xcode: 15.2
     scripts:
-      - name: Get Flutter dependencies
-        script: |
-          flutter pub get
-      - name: Build iOS IPA
-        script: |
-          flutter build ipa --release
+      - name: Get dependencies
+        script: flutter pub get
+      - name: Build iOS app without signing
+        script: flutter build ios --release --no-codesign
     artifacts:
-      - build/ios/ipa/*.ipa
+      - build/ios/iphoneos/Runner.app
