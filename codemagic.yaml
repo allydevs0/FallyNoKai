@@ -1,7 +1,7 @@
 workflows:
   ios-workflow:
     name: Build iOS IPA no signing
-   instance_type: mac_mini_m1
+    instance_type: mac_mini_m1
     environment:
       flutter: stable
       xcode: 15.2
