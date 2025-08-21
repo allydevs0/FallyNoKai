@@ -1,7 +1,4 @@
-# Uncomment this line to define a global platform for your project
-platform :ios, '17.0'
-
-# CocoaPods analytics sends network stats
+platform :ios, '14.0'  # Definindo explicitamente iOS 14 ou superior
 ENV['COCOAPODS_DISABLE_STATS'] = 'true'
 
 project 'Runner', {
@@ -9,14 +6,6 @@ project 'Runner', {
   'Profile' => :release,
   'Release' => :release,
 }
-
-# Definir os pods do Flutter
-def parse_KV_file(file, sep='=')
-  File.foreach(file).map do |line|
-    key, value = line.strip.split(sep, 2)
-    [key, value]
-  end.to_h
-end
 
 use_frameworks!
 use_modular_headers!
