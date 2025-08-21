@@ -1,8 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:anime/services/anime_scraper.dart';
-import 'package:anime/services/api_service.dart';
 import 'package:anime/models/anime_model.dart';
-import 'package:anime/main.dart'; // Import themeService, favoriteService, historyService
+import 'package:anime/models/episode_model.dart';
+import 'package:anime/main.dart'; // animeScraper, themeService, favoriteService, historyService
+import 'package:anime/video_player_screen.dart'; // VideoPlayerScreen
 
 class HomePage extends StatefulWidget {
   const HomePage({super.key});
@@ -12,63 +13,51 @@ class HomePage extends StatefulWidget {
 }
 
 class _HomePageState extends State<HomePage> {
-  final AnimeScraper animeScraper = AnimeScraper();
-  final ApiService apiService = ApiService();
   final TextEditingController searchController = TextEditingController();
 
-  List<Anime> aniListResults = [];
-  List<Map<String, String>> scrapedEpisodes = [];
-  bool isLoadingAniList = false;
-  bool isLoadingScrapedEpisodes = false;
+  List<Anime> searchResults = [];
+  List<Episode> scrapedEpisodes = [];
+  bool isLoadingSearch = false;
+  bool isLoadingEpisodes = false;
 
-  Anime? selectedAnime; // To store the selected AniList anime
+  Anime? selectedAnime;
 
-  Future<void> searchAniList() async {
-    setState(() => isLoadingAniList = true);
+  Future<void> searchAnime() async {
+    setState(() => isLoadingSearch = true);
     final query = searchController.text.trim();
     if (query.isEmpty) {
       setState(() {
-        aniListResults = [];
-        isLoadingAniList = false;
+        searchResults = [];
+        isLoadingSearch = false;
       });
       return;
     }
 
     try {
-      final results = await apiService.searchAniListAnime(query);
+      final results = await animeScraper.searchAnime(1, query, []);
       setState(() {
-        aniListResults = results;
-        selectedAnime = null; // Clear selected anime when new search
-        scrapedEpisodes = []; // Clear scraped episodes
+        searchResults = results;
+        selectedAnime = null;
+        scrapedEpisodes = [];
       });
     } catch (e) {
-      print("Erro ao buscar no AniList: $e");
-      setState(() => aniListResults = []);
+      print("Erro ao buscar animes: $e");
+      setState(() => searchResults = []);
     } finally {
-      setState(() => isLoadingAniList = false);
+      if (mounted) setState(() => isLoadingSearch = false);
     }
   }
 
-  Future<void> fetchScrapedEpisodes(String animeTitle) async {
-    setState(() => isLoadingScrapedEpisodes = true);
+  Future<void> fetchScrapedEpisodes(String animeUrl) async {
+    setState(() => isLoadingEpisodes = true);
     try {
-      // For now, we'll use the anime title from AniList to search on AnimeFire.plus
-      // This might need refinement if AnimeFire.plus has different titles or URLs
-      final searchResults = await animeScraper.searchAnime(animeTitle);
-      if (searchResults.isNotEmpty) {
-        // Assuming the first result is the correct one for now
-        final animeUrl = searchResults.first['url']!;
-        final episodes = await animeScraper.getEpisodes(animeUrl);
-        setState(() => scrapedEpisodes = episodes);
-      } else {
-        setState(() => scrapedEpisodes = []);
-        print("Nenhum resultado encontrado no AnimeFire.plus para: $animeTitle");
-      }
+      final episodes = await animeScraper.fetchEpisodeList(animeUrl);
+      setState(() => scrapedEpisodes = episodes);
     } catch (e) {
       print("Erro ao raspar episódios: $e");
       setState(() => scrapedEpisodes = []);
     } finally {
-      setState(() => isLoadingScrapedEpisodes = false);
+      if (mounted) setState(() => isLoadingEpisodes = false);
     }
   }
 
@@ -83,9 +72,7 @@ class _HomePageState extends State<HomePage> {
             builder: (context, themeMode, child) {
               return Switch(
                 value: themeMode == ThemeMode.dark,
-                onChanged: (value) {
-                  themeService.toggleTheme();
-                },
+                onChanged: (value) => themeService.toggleTheme(),
               );
             },
           ),
@@ -98,91 +85,131 @@ class _HomePageState extends State<HomePage> {
             TextField(
               controller: searchController,
               decoration: InputDecoration(
-                labelText: "Buscar anime no AniList",
+                labelText: "Buscar anime",
                 suffixIcon: IconButton(
                   icon: const Icon(Icons.search),
-                  onPressed: searchAniList,
+                  onPressed: searchAnime,
                 ),
               ),
-              onSubmitted: (_) => searchAniList(),
+              onSubmitted: (_) => searchAnime(),
             ),
             const SizedBox(height: 20),
-            if (isLoadingAniList)
+            if (isLoadingSearch)
               const CircularProgressIndicator()
-            else if (aniListResults.isNotEmpty)
+            else if (searchResults.isNotEmpty) ...[
               Expanded(
                 child: ListView.builder(
-                  itemCount: aniListResults.length,
+                  itemCount: searchResults.length,
                   itemBuilder: (context, index) {
-                    final anime = aniListResults[index];
+                    final anime = searchResults[index];
                     return ListTile(
-                      leading: anime.imageUrl.isNotEmpty
-                          ? Image.network(anime.imageUrl, width: 50, height: 50, fit: BoxFit.cover)
-                          : null,
                       title: Text(anime.title),
-                      subtitle: Text(anime.description.replaceAll(RegExp(r'<[^>]*>|&[^;]+;'), '')), // Remove HTML tags
-                      trailing: ValueListenableBuilder<List<Anime>>(
-                        valueListenable: favoriteService.favorites,
-                        builder: (context, favorites, child) {
-                          final isFav = favoriteService.isFavorite(anime);
-                          return IconButton(
-                            icon: Icon(
-                              isFav ? Icons.favorite : Icons.favorite_border,
-                              color: isFav ? Colors.red : null,
-                            ),
-                            onPressed: () {
-                              favoriteService.toggleFavorite(anime);
-                            },
-                          );
-                        },
-                      ),
-                      onTap: () {
+                      onTap: () async {
                         setState(() {
-                          selectedAnime = anime;
-                          aniListResults = []; // Clear search results
+                          isLoadingSearch = true;
+                          selectedAnime = null;
+                          searchResults = [];
                         });
-                        historyService.addAnimeToHistory(anime); // Add to history
-                        fetchScrapedEpisodes(anime.title);
+
+                        try {
+                          final animeDetails =
+                              await animeScraper.fetchAnimeDetails(anime.url);
+                          if (mounted) setState(() => selectedAnime = animeDetails);
+                          historyService.addAnimeToHistory(animeDetails);
+                          fetchScrapedEpisodes(animeDetails.url);
+                        } catch (e) {
+                          print("Erro ao obter detalhes do anime: $e");
+                        } finally {
+                          if (mounted) setState(() => isLoadingSearch = false);
+                        }
                       },
                     );
                   },
                 ),
               )
-            else if (selectedAnime != null)
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    selectedAnime!.title,
-                    style: Theme.of(context).textTheme.headlineSmall,
-                  ),
-                  const SizedBox(height: 10),
-                  if (isLoadingScrapedEpisodes)
-                    const CircularProgressIndicator()
-                  else if (scrapedEpisodes.isNotEmpty)
-                    SizedBox(
-                      height: MediaQuery.of(context).size.height * 0.6, // Limit height for episodes list
-                      child: ListView.builder(
-                        itemCount: scrapedEpisodes.length,
-                        itemBuilder: (context, index) {
-                          final episode = scrapedEpisodes[index];
-                          return ListTile(
-                            title: Text(episode["title"] ?? "Episódio sem título"),
-                            subtitle: Text(episode["url"] ?? "URL não disponível"),
-                            onTap: () {
-                              // TODO: Implement episode playback or download
-                              print("Tapped on episode: ${episode["url"]}");
-                            },
-                          );
-                        },
+            ] else if (selectedAnime != null) ...[
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const SizedBox(width: 16),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                selectedAnime!.title,
+                                style: Theme.of(context).textTheme.headlineSmall,
+                                maxLines: 2,
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                              ValueListenableBuilder<List<Anime>>(
+                                valueListenable: favoriteService.favorites,
+                                builder: (context, favorites, child) {
+                                  final isFav = favoriteService.isFavorite(selectedAnime!);
+                                  return IconButton(
+                                    icon: Icon(
+                                      isFav ? Icons.favorite : Icons.favorite_border,
+                                      color: isFav ? Colors.red : null,
+                                    ),
+                                    onPressed: () =>
+                                        favoriteService.toggleFavorite(selectedAnime!),
+                                  );
+                                },
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 10),
+                    Expanded(
+                      child: SingleChildScrollView(
+                        child: Text(
+                          selectedAnime!.description ?? "Nenhuma descrição disponível.",
+                        ),
                       ),
-                    )
-                  else
-                    const Text("Nenhum episódio encontrado para este anime no AnimeFire.plus."),
-                ],
+                    ),
+                    const SizedBox(height: 10),
+                    if (isLoadingEpisodes)
+                      const CircularProgressIndicator()
+                    else if (scrapedEpisodes.isNotEmpty) ...[
+                      Expanded(
+                        child: ListView.builder(
+                          itemCount: scrapedEpisodes.length,
+                          itemBuilder: (context, index) {
+                            final episode = scrapedEpisodes[index];
+                            return ListTile(
+                              title: Text(episode.title),
+                              subtitle: Text("Episódio ${episode.episodeNumber}"),
+                              onTap: () {
+                                Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                    builder: (context) => VideoPlayerScreen(
+                                      animeUrl: selectedAnime!.url,
+                                      currentEpisodeUrl: episode.url,
+                                      title: episode.title,
+                                    ),
+                                  ),
+                                );
+                              },
+                            );
+                          },
+                        ),
+                      )
+                    ] else ...[
+                      const Text("Nenhum episódio encontrado para este anime."),
+                    ],
+                  ],
+                ),
               )
-            else
-              const Text("Pesquise por um anime no AniList."),
+            ] else ...[
+              const Text("Pesquise por um anime."),
+            ],
           ],
         ),
       ),
