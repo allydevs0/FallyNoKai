@@ -19,7 +19,7 @@ jobs:
       - name: Archive Simulator App
         run: tar -czf build-ios-simulator.tar.gz build/ios/iphonesimulator/Runner.app
       - name: Upload Artifact
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: ios-simulator-app
           path: build-ios-simulator.tar.gz
