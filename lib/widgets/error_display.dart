@@ -17,10 +17,10 @@ class ErrorDisplay extends StatelessWidget {
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
           Text(message),
-          SizedBox(height: 20),
+          const SizedBox(height: 20),
           ElevatedButton(
             onPressed: onRetry,
-            child: Text('Retry'),
+            child: const Text('Retry'),
           ),
         ],
       ),

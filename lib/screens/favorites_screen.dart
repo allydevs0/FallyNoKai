@@ -24,8 +24,8 @@ class FavoritesScreen extends StatelessWidget {
             itemBuilder: (context, index) {
               final anime = favorites[index];
               return ListTile(
-                leading: anime.imageUrl.isNotEmpty
-                    ? Image.network(anime.imageUrl, width: 50, height: 50, fit: BoxFit.cover)
+                leading: anime.thumbnailUrl != null && anime.thumbnailUrl!.isNotEmpty
+                    ? Image.network(anime.thumbnailUrl!, width: 50, height: 50, fit: BoxFit.cover)
                     : null,
                 title: Text(anime.title),
                 subtitle: Text(anime.description.replaceAll(RegExp(r'<[^>]*>|&[^;]+;'), '')),

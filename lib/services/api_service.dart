@@ -6,10 +6,10 @@ class ApiService {
   final String _anilistApiUrl = 'https://graphql.anilist.co';
 
   Future<List<Anime>> searchAniListAnime(String query) async {
-    final String graphqlQuery = '''
-      query ({"search": String}) {
+    const String graphqlQuery = '''
+      query (\$search: String) {
         Page (perPage: 10) {
-          media (search: "$search", type: ANIME) {
+          media (search: \$search, type: ANIME) {
             id
             title {
               romaji
@@ -41,7 +41,12 @@ class ApiService {
     if (response.statusCode == 200) {
       final Map<String, dynamic> data = jsonDecode(response.body);
       final List<dynamic> mediaList = data['data']['Page']['media'];
-      return mediaList.map((json) => Anime.fromJson(json)).toList();
+      return mediaList.map((json) => Anime.fromMap({ // Fixed: changed fromJson to fromMap
+        'title': json['title']['romaji'] ?? json['title']['english'] ?? 'N/A',
+        'thumbnailUrl': json['coverImage']?['large'],
+        'description': json['description'] ?? 'N/A',
+        'url': 'https://anilist.co/anime/${json['id']}', // Create a URL from the ID
+      })).toList();
     } else {
       throw Exception('Failed to load AniList anime: ${response.statusCode}');
     }

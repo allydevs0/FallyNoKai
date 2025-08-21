@@ -25,11 +25,16 @@ class AnimeCard extends StatelessWidget {
         child: Stack(
           fit: StackFit.expand,
           children: [
-            CachedNetworkImage(
-              imageUrl: anime.imageUrl,
-              fit: BoxFit.cover,
-              placeholder: (context, url) => Center(child: CircularProgressIndicator()),
-              errorWidget: (context, url, error) => Icon(Icons.error),
+            Hero(
+              tag: 'anime-thumbnail-${anime.url}', // Unique tag for Hero animation
+              child: anime.thumbnailUrl != null && anime.thumbnailUrl!.isNotEmpty
+                  ? CachedNetworkImage(
+                      imageUrl: anime.thumbnailUrl as String, // Explicit cast
+                      fit: BoxFit.cover,
+                      placeholder: (context, url) => const Center(child: CircularProgressIndicator()),
+                      errorWidget: (context, url, error) => const Icon(Icons.error),
+                    )
+                  : Container(color: Colors.grey), // Placeholder if no image
             ),
             Positioned(
               bottom: 0,
@@ -46,7 +51,7 @@ class AnimeCard extends StatelessWidget {
                 padding: const EdgeInsets.all(12.0),
                 child: Text(
                   anime.title,
-                  style: TextStyle(
+                  style: const TextStyle(
                     color: Colors.white,
                     fontSize: 16.0,
                     fontWeight: FontWeight.bold,
@@ -56,44 +61,6 @@ class AnimeCard extends StatelessWidget {
                 ),
               ),
             ),
-            if (anime.episodes != null)
-              Positioned(
-                top: 8.0,
-                left: 8.0,
-                child: Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 8.0, vertical: 4.0),
-                  decoration: BoxDecoration(
-                    color: Colors.black.withOpacity(0.7),
-                    borderRadius: BorderRadius.circular(8.0),
-                  ),
-                  child: Text(
-                    '${anime.episodes} episodes',
-                    style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
-                  ),
-                ),
-              ),
-            if (anime.score != null)
-              Positioned(
-                top: 8.0,
-                right: 8.0,
-                child: Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 8.0, vertical: 4.0),
-                  decoration: BoxDecoration(
-                    color: Colors.black.withOpacity(0.7),
-                    borderRadius: BorderRadius.circular(8.0),
-                  ),
-                  child: Row(
-                    children: [
-                      Icon(Icons.star, color: Colors.amber, size: 16.0),
-                      SizedBox(width: 4.0),
-                      Text(
-                        anime.score!.toStringAsFixed(2),
-                        style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
           ],
         ),
       ),

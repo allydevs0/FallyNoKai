@@ -8,8 +8,10 @@ class ThemeService {
 
   ValueNotifier<ThemeMode> get themeMode => _themeMode;
 
-  ThemeService() {
-    _loadThemeMode();
+  ThemeService();
+
+  Future<void> init() async {
+    await _loadThemeMode();
   }
 
   Future<void> _loadThemeMode() async {

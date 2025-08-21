@@ -10,8 +10,10 @@ class FavoriteService {
 
   ValueNotifier<List<Anime>> get favorites => _favorites;
 
-  FavoriteService() {
-    _loadFavorites();
+  FavoriteService();
+
+  Future<void> init() async {
+    await _loadFavorites();
   }
 
   Future<void> _loadFavorites() async {
@@ -32,13 +34,13 @@ class FavoriteService {
   }
 
   bool isFavorite(Anime anime) {
-    return _favorites.value.any((favAnime) => favAnime.id == anime.id);
+    return _favorites.value.any((favAnime) => favAnime.url == anime.url);
   }
 
   Future<void> toggleFavorite(Anime anime) async {
     if (isFavorite(anime)) {
       _favorites.value =
-          _favorites.value.where((favAnime) => favAnime.id != anime.id).toList();
+          _favorites.value.where((favAnime) => favAnime.url != anime.url).toList();
     } else {
       _favorites.value = [..._favorites.value, anime];
     }

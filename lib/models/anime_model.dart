@@ -1,52 +1,44 @@
-import 'dart:convert';
 
 class Anime {
   final String title;
-  final String imageUrl;
+  final String? thumbnailUrl; // Changed from imageUrl
   final String description;
-  final int id;
+  final String url; // Added url
+  final String? genre;
+  final int? status;
+  final String? author;
 
   Anime({
     required this.title,
-    required this.imageUrl,
-    required this.description,
-    required this.id,
+    this.thumbnailUrl,
+    this.description = 'N/A',
+    required this.url,
+    this.genre,
+    this.status,
+    this.author,
   });
 
-  factory Anime.fromJson(Map<String, dynamic> json) {
-    return Anime(
-      title: json['title']['romaji'] ?? json['title']['english'] ?? 'N/A',
-      imageUrl: json['coverImage']['large'] ?? '',
-      description: json['description'] ?? 'N/A',
-      id: json['id'],
-    );
-  }
-
-  // For shared_preferences storage
+  // For shared_preferences storage (adapted to new fields)
   Map<String, dynamic> toJson() => {
-        'title': {'romaji': title}, // Store as romaji for simplicity
-        'coverImage': {'large': imageUrl},
+        'title': title,
+        'thumbnailUrl': thumbnailUrl,
         'description': description,
-        'id': id,
+        'url': url,
+        'genre': genre,
+        'status': status,
+        'author': author,
       };
 
-  // For shared_preferences retrieval
+  // For shared_preferences retrieval (adapted to new fields)
   factory Anime.fromMap(Map<String, dynamic> map) {
     return Anime(
-      title: map['title']['romaji'] ?? 'N/A',
-      imageUrl: map['coverImage']['large'] ?? '',
+      title: map['title'] ?? 'N/A',
+      thumbnailUrl: map['thumbnailUrl'],
       description: map['description'] ?? 'N/A',
-      id: map['id'],
+      url: map['url'] ?? '',
+      genre: map['genre'],
+      status: map['status'],
+      author: map['author'],
     );
   }
-}
-
-class Episode {
-  final String title;
-  final String url;
-
-  Episode({
-    required this.title,
-    required this.url,
-  });
 }

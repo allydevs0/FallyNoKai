@@ -11,8 +11,10 @@ class HistoryService {
 
   ValueNotifier<List<Anime>> get history => _history;
 
-  HistoryService() {
-    _loadHistory();
+  HistoryService();
+
+  Future<void> init() async {
+    await _loadHistory();
   }
 
   Future<void> _loadHistory() async {
@@ -35,7 +37,7 @@ class HistoryService {
   Future<void> addAnimeToHistory(Anime anime) async {
     // Remove if already in history to move to top
     _history.value =
-        _history.value.where((histAnime) => histAnime.id != anime.id).toList();
+        _history.value.where((histAnime) => histAnime.url != anime.url).toList();
 
     // Add to the beginning
     _history.value = [anime, ..._history.value];

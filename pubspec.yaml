@@ -12,12 +12,17 @@ dependencies:
   flutter:
     sdk: flutter
   http: ^0.13.5
-  video_player: ^2.6.1
+  video_player: ^2.6.1 # Re-adding video_player
+  chewie: ^1.5.0 # Re-adding chewie
   cached_network_image: ^3.2.3
-  chewie: ^1.5.0
   html: ^0.15.0
-  shared_preferences: ^2.2.0
+  shared_preferences: ^2.5.3
+  media_kit: ^1.2.0
+  media_kit_video: ^1.3.0
+  media_kit_libs_video: ^1.0.6
+  ffmpeg_kit_flutter_new: ^3.1.0
 
+  provider: any
 dev_dependencies:
   flutter_test:
     sdk: flutter
