@@ -1,23 +1,42 @@
-name: Build iOS Simulator
+name: Flutter iOS Simulator Build
+
 on:
   push:
-    branches: [main]
+    branches:
+      - main
+  workflow_dispatch:
 
 jobs:
-  build-ios:
+  build-ios-simulator:
     runs-on: macos-latest
+
     steps:
+      # 1️⃣ Clonar repositório
       - uses: actions/checkout@v3
+
+      # 2️⃣ Configurar Flutter
       - name: Setup Flutter
         uses: subosito/flutter-action@v2
         with:
-          flutter-version: '3.13.0'
-      - name: Install dependencies
+          flutter-version: '3.13.0' # ajuste para sua versão do Flutter
+
+      # 3️⃣ Atualizar Flutter para evitar conflitos
+      - name: Upgrade Flutter
+        run: flutter upgrade
+
+      # 4️⃣ Instalar dependências
+      - name: Get Flutter Packages
         run: flutter pub get
-      - name: Build for iOS Simulator
+
+      # 5️⃣ Build para iOS Simulator
+      - name: Build iOS Simulator
         run: flutter build ios --simulator
+
+      # 6️⃣ Empacotar app em tar.gz
       - name: Archive Simulator App
         run: tar -czf build-ios-simulator.tar.gz build/ios/iphonesimulator/Runner.app
+
+      # 7️⃣ Upload do artefato
       - name: Upload Artifact
         uses: actions/upload-artifact@v4
         with:
