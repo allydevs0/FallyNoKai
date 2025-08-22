@@ -50,7 +50,7 @@ class DefaultAnimeScraper implements AnimeSource {
   @override
   Future<List<Anime>> searchAnime(int page, String query, List<dynamic> filters) async {
     // Baseado na implementação Kotlin do AnimeFire
-    final fixedQuery = query.trim().replaceAll(" ", "-").toLowerCase();
+    final fixedQuery = query.trim().replaceAll(" ", "-").replaceAll(":", "-").toLowerCase();
     final searchUrl = '$baseUrl/pesquisar/$fixedQuery';
     
     print("🔍 DefaultAnimeScraper: Fazendo pesquisa em $searchUrl");
