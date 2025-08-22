@@ -5,10 +5,8 @@ workflows:
       flutter: stable
       xcode: 16.4
       cocoapods: default
-      # Não define Ruby, usa o do macOS
       java: 17
       node: latest
-      os: macos
     scripts:
       - name: Switch Xcode
         script: sudo xcode-select --switch /Applications/Xcode-16.4.app/Contents/Developer
