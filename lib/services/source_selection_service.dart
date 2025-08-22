@@ -1,6 +1,7 @@
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:anime/services/default_anime_scraper.dart';
 import 'package:anime/services/animefire_source.dart';
+import 'package:anime/services/goyabu_source.dart'; // Import the new source
 import 'package:anime/services/anime_source.dart';
 
 class SourceSelectionService {
@@ -13,6 +14,8 @@ class SourceSelectionService {
     switch (sourceName) {
       case "Anime Fire":
         return AnimeFireSource();
+      case "Goyabu": // Add Goyabu case
+        return GoyabuSource();
       case "Default Anime Scraper":
       default:
         return DefaultAnimeScraper();
@@ -28,6 +31,7 @@ class SourceSelectionService {
     return [
       DefaultAnimeScraper(),
       AnimeFireSource(),
+      GoyabuSource(), // Add Goyabu to the list
     ];
   }
 }
