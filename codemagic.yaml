@@ -1,1 +1,39 @@
+workflows:
+  ios-simulator-build:
+    name: iOS Simulator Build
+    environment:
+      vars:
+        FLUTTER_CHANNEL: stable
+        FLUTTER_VERSION: latest
+      xcode: latest
+      cocoapods: default
+      node: latest
+      ruby: latest
+    scripts:
+      # 1️⃣ Atualiza deployment target no project.pbxproj
+      - name: Update iOS Deployment Target in project.pbxproj
+        script: |
+          sed -i '' 's/IPHONEOS_DEPLOYMENT_TARGET = [0-9]\+\.[0-9]\+/IPHONEOS_DEPLOYMENT_TARGET = 18.0/g' ios/Runner.xcodeproj/project.pbxproj
 
+      # 2️⃣ Atualiza deployment target no Podfile
+      - name: Update iOS Deployment Target in Podfile
+        script: |
+          sed -i '' "s/platform :ios, '[0-9]\+\.[0-9]\+'/platform :ios, '18.0'/g" ios/Podfile || echo "Podfile already set"
+
+      # 3️⃣ Atualiza deployment target nos xcconfig
+      - name: Update iOS Deployment Target in xcconfig
+        script: |
+          sed -i '' 's/IPHONEOS_DEPLOYMENT_TARGET = [0-9]\+\.[0-9]\+/IPHONEOS_DEPLOYMENT_TARGET = 18.0/g' ios/Flutter/Debug.xcconfig
+          sed -i '' 's/IPHONEOS_DEPLOYMENT_TARGET = [0-9]\+\.[0-9]\+/IPHONEOS_DEPLOYMENT_TARGET = 18.0/g' ios/Flutter/Release.xcconfig
+          sed -i '' 's/IPHONEOS_DEPLOYMENT_TARGET = [0-9]\+\.[0-9]\+/IPHONEOS_DEPLOYMENT_TARGET = 18.0/g' ios/Flutter/Generated.xcconfig
+
+      # 4️⃣ Instala pods
+      - name: Install CocoaPods
+        script: |
+          cd ios
+          pod install
+
+      # 5️⃣ Build para simulador
+      - name: Build iOS Simulator
+        script: |
+          flutter build ios --simulator --no-codesign
