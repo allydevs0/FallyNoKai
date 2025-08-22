@@ -30,3 +30,9 @@ jobs:
         run: |
           cd build/ios/iphonesimulator
           zip -r FlutterAppSim.zip Runner.app
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v3
+        with:
+          name: FlutterAppSim
+          path: build/ios/iphonesimulator/FlutterAppSim.zip
