@@ -5,6 +5,7 @@ import 'package:anime/services/anime_source.dart';
 import 'package:http/http.dart' as http;
 import 'package:html/parser.dart' show parse;
 import 'package:html/dom.dart';
+import 'package:anime/services/blogger_extractor.dart'; // Import BloggerExtractor
 
 class GoyabuSource implements AnimeSource {
   @override
@@ -15,6 +16,11 @@ class GoyabuSource implements AnimeSource {
   final bool supportsLatest = true;
 
   final http.Client _client = http.Client();
+  late final BloggerExtractor _bloggerExtractor; // Declare BloggerExtractor
+
+  GoyabuSource() {
+    _bloggerExtractor = BloggerExtractor(_client);
+  }
 
   // Helper for parsing status (if needed, based on Goyabu's implementation)
   // int _parseStatus(String? statusString) {
@@ -172,16 +178,8 @@ class GoyabuSource implements AnimeSource {
       for (var iframe in iframeElements) {
         final src = iframe.attributes['src'];
         if (src != null && src.isNotEmpty) {
-          // Here, we need to implement the BloggerExtractor logic or similar
-          // For now, a placeholder. This is the most complex part.
-          // The Kotlin code uses BloggerExtractor(client).videosFromUrl(url, headers)
-          // This will require a separate implementation in Dart.
-          // If it's a direct video URL, add it. Otherwise, it needs further parsing.
           if (src.contains("blogger.com")) {
-            // Placeholder for BloggerExtractor equivalent
-            // This will need to be implemented based on BloggerExtractor.kt
-            // For now, we'll just add a dummy video if it's a blogger link
-            videos.add(Video(url: src, quality: "Blogger (needs implementation)", headers: _headers));
+            videos.addAll(await _bloggerExtractor.videosFromUrl(src, _headers));
           } else {
             // Assume it's a direct video link or needs further parsing
             videos.add(Video(url: src, quality: "Unknown (iframe)", headers: _headers));
