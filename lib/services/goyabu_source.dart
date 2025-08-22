@@ -198,7 +198,7 @@ class GoyabuSource implements AnimeSource {
   Document _getRealDoc(Document document) {
     final menu = document.querySelector("ul.paginationEP a li.lista");
     if (menu != null) {
-      final originalUrl = menu.parent()?.attributes['href'];
+      final originalUrl = menu.parent?.attributes['href'];
       if (originalUrl != null && originalUrl.isNotEmpty) {
         // This part requires making another HTTP request, which is not ideal in a synchronous helper.
         // In Kotlin, it's client.newCall(GET(originalUrl, headers)).execute().asJsoup()
