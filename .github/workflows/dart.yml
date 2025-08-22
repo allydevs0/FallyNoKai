@@ -26,6 +26,9 @@ jobs:
       - name: Build iOS simulator
         run: flutter build ios --simulator
 
+      - name: List build folder (debug)
+        run: ls -R build/ios/iphonesimulator
+
       - name: Archive .app
         run: |
           cd build/ios/iphonesimulator
