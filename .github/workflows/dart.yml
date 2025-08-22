@@ -23,6 +23,11 @@ jobs:
           pod repo update
           pod install
 
+      - name: Check Xcode version and SDKs
+        run: |
+          xcodebuild -version
+          xcodebuild -showsdks
+
       - name: Build iOS simulator
         run: flutter build ios --simulator
 
