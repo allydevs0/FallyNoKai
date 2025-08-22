@@ -2,9 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import '../models/anime_model.dart';
 import '../models/episode_model.dart';
-import '../services/anime_scraper.dart'; // Assuming this is the service to fetch episodes
-import 'package:anime/video_player_screen.dart'; // Import the video player screen
-
+import '../services/anime_scraper.dart';
+import 'package:anime/services/source_selection_service.dart';
+import 'package:anime/video_player_screen.dart';
 
 class AnimeDetailScreen extends StatefulWidget {
   final Anime anime;
@@ -19,10 +19,12 @@ class _AnimeDetailScreenState extends State<AnimeDetailScreen> {
   List<Episode> _episodes = [];
   bool _isLoading = true;
   String? _errorMessage;
+  late Anime _displayAnime; // Added to hold the anime object for display
 
   @override
   void initState() {
     super.initState();
+    _displayAnime = widget.anime; // Initialize with the passed anime
     _fetchEpisodes();
   }
 
@@ -33,15 +35,41 @@ class _AnimeDetailScreenState extends State<AnimeDetailScreen> {
         _errorMessage = null;
       });
 
-      // Assuming AnimeScraper has a method to get episodes for an anime
-      // You might need to adjust this based on the actual AnimeScraper implementation
-      final scraper = AnimeScraper(); // Use the wrapper class
-      final episodes = await scraper.fetchEpisodeList(widget.anime.url);
+      final sourceService = SourceSelectionService();
+      final selectedSource = await sourceService.getSelectedSource();
 
-      setState(() {
-        _episodes = episodes;
-        _isLoading = false;
-      });
+      // Search for the anime by title using the selected source
+      final searchResults = await selectedSource.searchAnime(1, widget.anime.title, []); // Assuming page 1 and no filters
+
+      Anime? matchedAnime;
+      for (var result in searchResults) {
+        if (result.title.toLowerCase() == widget.anime.title.toLowerCase()) {
+          matchedAnime = result;
+          break;
+        }
+      }
+
+      if (matchedAnime != null) {
+        // Update _displayAnime with scraper's banner if available
+        if (matchedAnime.bannerImageUrl != null && matchedAnime.bannerImageUrl!.isNotEmpty) {
+          _displayAnime = _displayAnime.copyWith(bannerImageUrl: matchedAnime.bannerImageUrl);
+        } else if (matchedAnime.thumbnailUrl != null && matchedAnime.thumbnailUrl!.isNotEmpty && _displayAnime.thumbnailUrl == null) {
+          // Fallback to scraper's thumbnail if no banner and current thumbnail is null
+          _displayAnime = _displayAnime.copyWith(thumbnailUrl: matchedAnime.thumbnailUrl);
+        }
+
+        // Use the URL from the matched anime to call fetchEpisodeList
+        final episodes = await selectedSource.fetchEpisodeList(matchedAnime.url);
+        setState(() {
+          _episodes = episodes;
+          _isLoading = false;
+        });
+      } else {
+        setState(() {
+          _errorMessage = 'No exact match found for "${widget.anime.title}".';
+          _isLoading = false;
+        });
+      }
     } catch (e) {
       setState(() {
         _errorMessage = 'Failed to load episodes: $e';
@@ -52,8 +80,7 @@ class _AnimeDetailScreenState extends State<AnimeDetailScreen> {
 
   void _playEpisode(Episode episode) async {
     try {
-      // Fetch videos for the selected episode
-      final scraper = AnimeScraper(); // Use the wrapper class
+      final scraper = AnimeScraper();
       final videos = await scraper.fetchVideoList(episode.url);
 
       if (videos.isNotEmpty) {
@@ -63,7 +90,7 @@ class _AnimeDetailScreenState extends State<AnimeDetailScreen> {
             builder: (context) => VideoPlayerScreen(
               episode: episode,
               videos: videos,
-              episodes: _episodes, // Pass the list of episodes
+              episodes: _episodes,
             ),
           ),
         );
@@ -83,7 +110,7 @@ class _AnimeDetailScreenState extends State<AnimeDetailScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text(widget.anime.title),
+        title: Text(_displayAnime.title), // Use _displayAnime
       ),
       body: _isLoading
           ? const Center(child: CircularProgressIndicator())
@@ -102,13 +129,13 @@ class _AnimeDetailScreenState extends State<AnimeDetailScreen> {
                 )
               : SingleChildScrollView(
                   child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
+                    crossAxisAlignment: CrossAxisAlignment.start, // <-- corrigido aqui
                     children: [
-                      if (widget.anime.thumbnailUrl != null)
+                      if (_displayAnime.thumbnailUrl != null || _displayAnime.bannerImageUrl != null)
                         Hero(
-                          tag: 'anime-thumbnail-${widget.anime.url}', // Same tag as in AnimeCard
+                          tag: 'anime-thumbnail-${_displayAnime.url}',
                           child: CachedNetworkImage(
-                            imageUrl: widget.anime.thumbnailUrl!,
+                            imageUrl: _displayAnime.bannerImageUrl ?? _displayAnime.thumbnailUrl!,
                             fit: BoxFit.cover,
                             height: 200,
                             width: double.infinity,
@@ -124,7 +151,7 @@ class _AnimeDetailScreenState extends State<AnimeDetailScreen> {
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Text(
-                              widget.anime.title,
+                              _displayAnime.title, // Use _displayAnime
                               style: const TextStyle(
                                 fontSize: 24,
                                 fontWeight: FontWeight.bold,
@@ -132,7 +159,7 @@ class _AnimeDetailScreenState extends State<AnimeDetailScreen> {
                             ),
                             const SizedBox(height: 8),
                             Text(
-                              widget.anime.description ?? 'No description available.',
+                              _displayAnime.description ?? 'No description available.',
                               style: const TextStyle(fontSize: 16),
                             ),
                             const SizedBox(height: 16),
@@ -154,7 +181,8 @@ class _AnimeDetailScreenState extends State<AnimeDetailScreen> {
                                   margin: const EdgeInsets.symmetric(vertical: 4),
                                   child: ListTile(
                                     title: Text(episode.title),
-                                    subtitle: Text('Episode ${episode.episodeNumber.toStringAsFixed(0)}'),
+                                    subtitle: Text(
+                                        'Episode ${episode.episodeNumber.toStringAsFixed(0)}'),
                                     onTap: () => _playEpisode(episode),
                                   ),
                                 );
