@@ -1,49 +1,50 @@
 import 'package:flutter/material.dart';
-import 'package:anime/main.dart';
-import 'package:anime/models/anime_model.dart';
+import '../models/episode_model.dart';
 
-class HistoryScreen extends StatelessWidget {
-  const HistoryScreen({super.key});
+class HistoryScreen extends StatefulWidget {
+  final List<Episode> historyEpisodes;
+
+  const HistoryScreen({Key? key, required this.historyEpisodes}) : super(key: key);
 
   @override
+  State<HistoryScreen> createState() => _HistoryScreenState();
+}
+
+class _HistoryScreenState extends State<HistoryScreen> {
+  @override
   Widget build(BuildContext context) {
+    final episodes = widget.historyEpisodes;
+
+    if (episodes.isEmpty) {
+      return Scaffold(
+        appBar: AppBar(
+          title: const Text('History'),
+        ),
+        body: const Center(
+          child: Text('No history available.'),
+        ),
+      );
+    }
+
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Histórico'),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.clear_all),
-            onPressed: () {
-              // TODO: Implement clear history functionality in HistoryService
-              print('Clear history tapped');
-            },
-          ),
-        ],
+        title: const Text('History'),
       ),
-      body: ValueListenableBuilder<List<Anime>>(
-        valueListenable: historyService.history,
-        builder: (context, history, child) {
-          if (history.isEmpty) {
-            return const Center(
-              child: Text('Nenhum item no histórico ainda.'),
-            );
-          }
-          return ListView.builder(
-            itemCount: history.length,
-            itemBuilder: (context, index) {
-              final anime = history[index];
-              return ListTile(
-                leading: anime.thumbnailUrl != null && anime.thumbnailUrl!.isNotEmpty
-                    ? Image.network(anime.thumbnailUrl!, width: 50, height: 50, fit: BoxFit.cover)
-                    : null,
-                title: Text(anime.title),
-                subtitle: Text(anime.description.replaceAll(RegExp(r'<[^>]*>|&[^;]+;'), '')),
-                onTap: () {
-                  // TODO: Navigate to anime details or episode list
-                  print('Tapped on history: ${anime.title}');
-                },
-              );
-            },
+      body: ListView.builder(
+        itemCount: episodes.length,
+        itemBuilder: (context, index) {
+          final episode = episodes[index]; // garante que não é null
+          return Card(
+            margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+            child: ListTile(
+              title: Text(episode.title ?? 'Untitled Episode'),
+              subtitle: Text('Episode ${episode.episodeNumber.toStringAsFixed(0)}'),
+              trailing: const Icon(Icons.play_arrow),
+              onTap: () {
+                // Aqui você pode chamar a função para abrir o episódio no player
+                print('Playing episode: ${episode.title}');
+              },
+            ),
           );
         },
       ),

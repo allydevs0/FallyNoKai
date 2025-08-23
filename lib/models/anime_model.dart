@@ -1,10 +1,12 @@
+// lib/models/anime_model.dart
+import 'dart:convert';
 
 class Anime {
   final String title;
-  final String? thumbnailUrl; // Changed from imageUrl
-  final String? bannerImageUrl; // Added bannerImageUrl
+  final String? thumbnailUrl;
+  final String? bannerImageUrl;
   final String description;
-  final String url; // Added url
+  final String url;
   final String? genre;
   final int? status;
   final String? author;
@@ -13,7 +15,7 @@ class Anime {
   Anime({
     required this.title,
     this.thumbnailUrl,
-    this.bannerImageUrl, // Added to constructor
+    this.bannerImageUrl,
     this.description = 'N/A',
     required this.url,
     this.genre,
@@ -22,11 +24,14 @@ class Anime {
     this.score,
   });
 
-  // For shared_preferences storage (adapted to new fields)
-  Map<String, dynamic> toJson() => {
+  /// Compatibilidade: usa `url` como identificador único do anime.
+  String get id => url;
+
+  /// Serializa para Map (usado por HistoryEntry.toMap(), SharedPreferences, etc.)
+  Map<String, dynamic> toMap() => {
         'title': title,
         'thumbnailUrl': thumbnailUrl,
-        'bannerImageUrl': bannerImageUrl, // Added to toJson
+        'bannerImageUrl': bannerImageUrl,
         'description': description,
         'url': url,
         'genre': genre,
@@ -35,20 +40,43 @@ class Anime {
         'score': score,
       };
 
-  // For shared_preferences retrieval (adapted to new fields)
+  /// Serializa para JSON (String)
+  String toJson() => jsonEncode(toMap());
+
+  /// Cria a partir de Map (quando deserializar do SharedPreferences / arquivo)
   factory Anime.fromMap(Map<String, dynamic> map) {
+    double? parseScore(dynamic v) {
+      if (v == null) return null;
+      if (v is double) return v;
+      if (v is int) return v.toDouble();
+      if (v is String) return double.tryParse(v);
+      if (v is num) return v.toDouble();
+      return null;
+    }
+
+    int? parseInt(dynamic v) {
+      if (v == null) return null;
+      if (v is int) return v;
+      if (v is String) return int.tryParse(v);
+      return null;
+    }
+
     return Anime(
-      title: map['title'] ?? 'N/A',
-      thumbnailUrl: map['thumbnailUrl'],
-      bannerImageUrl: map['bannerImageUrl'], // Added to fromMap
-      description: map['description'] ?? 'N/A',
-      url: map['url'] ?? '',
-      genre: map['genre'],
-      status: map['status'],
-      author: map['author'],
-      score: map['score'] as double?,
+      title: map['title']?.toString() ?? 'N/A',
+      thumbnailUrl: map['thumbnailUrl'] as String?,
+      bannerImageUrl: map['bannerImageUrl'] as String?,
+      description: map['description']?.toString() ?? 'N/A',
+      url: map['url']?.toString() ?? '',
+      genre: map['genre'] as String?,
+      status: parseInt(map['status']),
+      author: map['author'] as String?,
+      score: parseScore(map['score']),
     );
   }
+
+  /// Cria a partir de JSON (String)
+  factory Anime.fromJson(String source) =>
+      Anime.fromMap(jsonDecode(source) as Map<String, dynamic>);
 
   Anime copyWith({
     String? title,

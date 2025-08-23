@@ -3,9 +3,55 @@ import 'package:cached_network_image/cached_network_image.dart';
 import '../models/anime_model.dart';
 import '../models/episode_model.dart';
 import '../services/anime_scraper.dart';
-import 'package:anime/services/source_selection_service.dart';
 import 'package:anime/video_player_screen.dart';
+import '../services/source_selection_service.dart';
+import '../services/favorite_service.dart';
+import 'package:provider/provider.dart';
 
+/// Widget de exibição de erros com retry e botão de voltar
+class ErrorDisplay extends StatelessWidget {
+  final String message;
+  final VoidCallback onRetry;
+  final bool showBackButton;
+
+  const ErrorDisplay({
+    Key? key,
+    required this.message,
+    required this.onRetry,
+    this.showBackButton = false,
+  }) : super(key: key);
+
+  @override
+  Widget build(BuildContext context) {
+    return Center(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Text(
+            message,
+            textAlign: TextAlign.center,
+            style: const TextStyle(fontSize: 16),
+          ),
+          const SizedBox(height: 20),
+          ElevatedButton(
+            onPressed: onRetry,
+            child: const Text('Retry'),
+          ),
+          if (showBackButton) ...[
+            const SizedBox(height: 10),
+            ElevatedButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text('Voltar'),
+              style: ElevatedButton.styleFrom(backgroundColor: Colors.grey),
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+}
+
+/// Tela de detalhes do anime
 class AnimeDetailScreen extends StatefulWidget {
   final Anime anime;
 
@@ -19,13 +65,35 @@ class _AnimeDetailScreenState extends State<AnimeDetailScreen> {
   List<Episode> _episodes = [];
   bool _isLoading = true;
   String? _errorMessage;
-  late Anime _displayAnime; // Added to hold the anime object for display
+
+  final SourceSelectionService _sourceSelectionService = SourceSelectionService();
+  late FavoriteService _favoriteService;
+  bool _isFavorite = false;
 
   @override
   void initState() {
     super.initState();
-    _displayAnime = widget.anime; // Initialize with the passed anime
+    // Obtem o FavoriteService do Provider
+    _favoriteService = Provider.of<FavoriteService>(context, listen: false);
+    _checkFavoriteStatus();
     _fetchEpisodes();
+  }
+
+  void _checkFavoriteStatus() {
+    setState(() {
+      _isFavorite = _favoriteService.isFavorite(widget.anime);
+    });
+  }
+
+  void _toggleFavorite() async {
+    await _favoriteService.toggleFavorite(widget.anime);
+    _checkFavoriteStatus();
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(_isFavorite ? 'Added to favorites!' : 'Removed from favorites!'),
+        duration: const Duration(seconds: 1),
+      ),
+    );
   }
 
   Future<void> _fetchEpisodes() async {
@@ -35,38 +103,26 @@ class _AnimeDetailScreenState extends State<AnimeDetailScreen> {
         _errorMessage = null;
       });
 
-      final sourceService = SourceSelectionService();
-      final selectedSource = await sourceService.getSelectedSource();
+      final selectedSource = await _sourceSelectionService.getSelectedSource();
+      List<Anime> searchResults = await selectedSource.searchAnime(1, widget.anime.title, []);
 
-      // Search for the anime by title using the selected source
-      final searchResults = await selectedSource.searchAnime(1, widget.anime.title, []); // Assuming page 1 and no filters
-
-      Anime? matchedAnime;
-      for (var result in searchResults) {
-        if (result.title.toLowerCase() == widget.anime.title.toLowerCase()) {
-          matchedAnime = result;
-          break;
-        }
+      Anime? foundAnime;
+      if (searchResults.isNotEmpty) {
+        foundAnime = searchResults.firstWhere(
+          (a) => a.title.toLowerCase() == widget.anime.title.toLowerCase(),
+          orElse: () => searchResults.first,
+        );
       }
 
-      if (matchedAnime != null) {
-        // Update _displayAnime with scraper's banner if available
-        if (matchedAnime.bannerImageUrl != null && matchedAnime.bannerImageUrl!.isNotEmpty) {
-          _displayAnime = _displayAnime.copyWith(bannerImageUrl: matchedAnime.bannerImageUrl);
-        } else if (matchedAnime.thumbnailUrl != null && matchedAnime.thumbnailUrl!.isNotEmpty && _displayAnime.thumbnailUrl == null) {
-          // Fallback to scraper's thumbnail if no banner and current thumbnail is null
-          _displayAnime = _displayAnime.copyWith(thumbnailUrl: matchedAnime.thumbnailUrl);
-        }
-
-        // Use the URL from the matched anime to call fetchEpisodeList
-        final episodes = await selectedSource.fetchEpisodeList(matchedAnime.url);
+      if (foundAnime != null) {
+        final episodes = await selectedSource.fetchEpisodeList(foundAnime.url);
         setState(() {
           _episodes = episodes;
           _isLoading = false;
         });
       } else {
         setState(() {
-          _errorMessage = 'No exact match found for "${widget.anime.title}".';
+          _errorMessage = 'No anime found from selected source for "${widget.anime.title}"';
           _isLoading = false;
         });
       }
@@ -80,14 +136,15 @@ class _AnimeDetailScreenState extends State<AnimeDetailScreen> {
 
   void _playEpisode(Episode episode) async {
     try {
-      final scraper = AnimeScraper();
-      final videos = await scraper.fetchVideoList(episode.url);
+      final selectedSource = await _sourceSelectionService.getSelectedSource();
+      final videos = await selectedSource.fetchVideoList(episode.url);
 
       if (videos.isNotEmpty) {
         Navigator.push(
           context,
           MaterialPageRoute(
             builder: (context) => VideoPlayerScreen(
+              anime: widget.anime,
               episode: episode,
               videos: videos,
               episodes: _episodes,
@@ -109,90 +166,91 @@ class _AnimeDetailScreenState extends State<AnimeDetailScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: Text(_displayAnime.title), // Use _displayAnime
-      ),
       body: _isLoading
           ? const Center(child: CircularProgressIndicator())
           : _errorMessage != null
-              ? Center(
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Text(_errorMessage!),
-                      ElevatedButton(
-                        onPressed: _fetchEpisodes,
-                        child: const Text('Retry'),
-                      ),
-                    ],
-                  ),
+              ? ErrorDisplay(
+                  message: _errorMessage!,
+                  onRetry: _fetchEpisodes,
+                  showBackButton: true,
                 )
-              : SingleChildScrollView(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start, // <-- corrigido aqui
-                    children: [
-                      if (_displayAnime.thumbnailUrl != null || _displayAnime.bannerImageUrl != null)
-                        Hero(
-                          tag: 'anime-thumbnail-${_displayAnime.url}',
-                          child: CachedNetworkImage(
-                            imageUrl: _displayAnime.bannerImageUrl ?? _displayAnime.thumbnailUrl!,
-                            fit: BoxFit.cover,
-                            height: 200,
-                            width: double.infinity,
-                            placeholder: (context, url) =>
-                                const Center(child: CircularProgressIndicator()),
-                            errorWidget: (context, url, error) =>
-                                const Icon(Icons.error),
-                          ),
-                        ),
-                      Padding(
-                        padding: const EdgeInsets.all(16.0),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
+              : CustomScrollView(
+                  slivers: [
+                    SliverAppBar(
+                      expandedHeight: 250,
+                      pinned: true,
+                      backgroundColor: Colors.black,
+                      flexibleSpace: FlexibleSpaceBar(
+                        title: Text(widget.anime.title),
+                        background: Stack(
+                          fit: StackFit.expand,
                           children: [
-                            Text(
-                              _displayAnime.title, // Use _displayAnime
-                              style: const TextStyle(
-                                fontSize: 24,
-                                fontWeight: FontWeight.bold,
+                            if (widget.anime.thumbnailUrl != null)
+                              CachedNetworkImage(
+                                imageUrl: widget.anime.thumbnailUrl!,
+                                fit: BoxFit.cover,
                               ),
-                            ),
-                            const SizedBox(height: 8),
-                            Text(
-                              _displayAnime.description ?? 'No description available.',
-                              style: const TextStyle(fontSize: 16),
-                            ),
-                            const SizedBox(height: 16),
-                            const Text(
-                              'Episodes:',
-                              style: TextStyle(
-                                fontSize: 20,
-                                fontWeight: FontWeight.bold,
+                            Container(
+                              decoration: BoxDecoration(
+                                gradient: LinearGradient(
+                                  colors: [Colors.black.withOpacity(0.6), Colors.transparent],
+                                  begin: Alignment.bottomCenter,
+                                  end: Alignment.topCenter,
+                                ),
                               ),
-                            ),
-                            const SizedBox(height: 8),
-                            ListView.builder(
-                              shrinkWrap: true,
-                              physics: const NeverScrollableScrollPhysics(),
-                              itemCount: _episodes.length,
-                              itemBuilder: (context, index) {
-                                final episode = _episodes[index];
-                                return Card(
-                                  margin: const EdgeInsets.symmetric(vertical: 4),
-                                  child: ListTile(
-                                    title: Text(episode.title),
-                                    subtitle: Text(
-                                        'Episode ${episode.episodeNumber.toStringAsFixed(0)}'),
-                                    onTap: () => _playEpisode(episode),
-                                  ),
-                                );
-                              },
                             ),
                           ],
                         ),
                       ),
-                    ],
-                  ),
+                      actions: [
+                        IconButton(
+                          icon: Icon(
+                            _isFavorite ? Icons.favorite : Icons.favorite_border,
+                            color: _isFavorite ? Colors.redAccent : Colors.white,
+                            size: 28,
+                          ),
+                          onPressed: _toggleFavorite,
+                        ),
+                      ],
+                    ),
+                    SliverToBoxAdapter(
+                      child: Padding(
+                        padding: const EdgeInsets.all(16.0),
+                        child: Text(
+                          widget.anime.description ?? 'No description available.',
+                          style: const TextStyle(fontSize: 16),
+                        ),
+                      ),
+                    ),
+                    SliverList(
+                      delegate: SliverChildBuilderDelegate(
+                        (context, index) {
+                          final episode = _episodes[index];
+                          return Padding(
+                            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
+                            child: Card(
+                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                              elevation: 3,
+                              child: ListTile(
+                                contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                                title: Text(
+                                  episode.title ?? 'Unknown Episode',
+                                  style: const TextStyle(fontWeight: FontWeight.bold),
+                                ),
+                                subtitle: Text('Episode ${episode.episodeNumber.toStringAsFixed(0)}'),
+                                trailing: const Icon(Icons.play_arrow),
+                                onTap: () => _playEpisode(episode),
+                              ),
+                            ),
+                          );
+                        },
+                        childCount: _episodes.length,
+                      ),
+                    ),
+                    const SliverToBoxAdapter(
+                      child: SizedBox(height: 20),
+                    ),
+                  ],
                 ),
     );
   }

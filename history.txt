@@ -1,0 +1,5 @@
+PROMPT: ola
+RESPOSTA: Erro ao chamar Ollama: Command failed: ollama chat <modelo> "ola"
+O sistema n�o pode encontrar o arquivo especificado.
+
+
