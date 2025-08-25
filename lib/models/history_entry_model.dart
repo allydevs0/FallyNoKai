@@ -27,6 +27,15 @@ class HistoryEntry {
   }
 
   factory HistoryEntry.fromMap(Map<String, dynamic> map) {
+    double? parseEpisodeNumber(dynamic v) {
+      if (v == null) return null;
+      if (v is double) return v;
+      if (v is int) return v.toDouble();
+      if (v is String) return double.tryParse(v);
+      if (v is num) return v.toDouble();
+      return null;
+    }
+
     return HistoryEntry(
       anime: Anime.fromMap(Map<String, dynamic>.from(map['anime'] as Map)),
       episode: map['episode'] != null

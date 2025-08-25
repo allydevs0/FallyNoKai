@@ -1,3 +1,4 @@
+import 'package:anime/screens/anime_detail_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:anime/main.dart';
 import 'package:anime/models/anime_model.dart';
@@ -27,8 +28,10 @@ class FavoritesScreen extends StatelessWidget {
                 leading: anime.thumbnailUrl != null && anime.thumbnailUrl!.isNotEmpty
                     ? Image.network(anime.thumbnailUrl!, width: 50, height: 50, fit: BoxFit.cover)
                     : null,
-                title: Text(anime.title),
-                subtitle: Text(anime.description.replaceAll(RegExp(r'<[^>]*>|&[^;]+;'), '')),
+                title: Text(anime.title ?? 'Untitled', softWrap: true, maxLines: 2), // Null check for title
+                subtitle: Text(
+                  anime.description?.replaceAll(RegExp(r'<[^>]*>|&[^;]+;'), '') ?? '', // Null check for description
+                ),
                 trailing: IconButton(
                   icon: const Icon(Icons.favorite, color: Colors.red),
                   onPressed: () {
@@ -36,8 +39,12 @@ class FavoritesScreen extends StatelessWidget {
                   },
                 ),
                 onTap: () {
-                  // TODO: Navigate to anime details or episode list
-                  print('Tapped on favorite: ${anime.title}');
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => AnimeDetailScreen(anime: anime),
+                    ),
+                  );
                 },
               );
             },

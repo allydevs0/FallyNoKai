@@ -13,7 +13,14 @@ class FavoriteService {
   FavoriteService();
 
   Future<void> init() async {
+    await clearFavorites(); // TODO: Remove this after one run
     await _loadFavorites();
+  }
+
+  Future<void> clearFavorites() async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.remove(_favoritesKey);
+    _favorites.value = [];
   }
 
   Future<void> _loadFavorites() async {
@@ -21,7 +28,7 @@ class FavoriteService {
     final favoritesString = prefs.getStringList(_favoritesKey);
     if (favoritesString != null) {
       _favorites.value = favoritesString
-          .map((e) => Anime.fromMap(jsonDecode(e) as Map<String, dynamic>))
+          .map((e) => Anime.fromJson(jsonDecode(e) as Map<String, dynamic>)) // Fixed
           .toList();
     }
   }
@@ -29,7 +36,7 @@ class FavoriteService {
   Future<void> _saveFavorites() async {
     final prefs = await SharedPreferences.getInstance();
     final favoritesString =
-        _favorites.value.map((e) => jsonEncode(e.toJson())).toList();
+        _favorites.value.map((e) => jsonEncode(e.toJson())).toList(); // Fixed
     await prefs.setStringList(_favoritesKey, favoritesString);
   }
 

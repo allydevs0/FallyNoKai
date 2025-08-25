@@ -104,18 +104,18 @@ class _AnimeDetailScreenState extends State<AnimeDetailScreen> {
       });
 
       final selectedSource = await _sourceSelectionService.getSelectedSource();
-      List<Anime> searchResults = await selectedSource.searchAnime(1, widget.anime.title, []);
+      List<Anime> searchResults = await selectedSource.searchAnime(1, widget.anime.title!, []); // Added !
 
       Anime? foundAnime;
       if (searchResults.isNotEmpty) {
         foundAnime = searchResults.firstWhere(
-          (a) => a.title.toLowerCase() == widget.anime.title.toLowerCase(),
+          (a) => (a.title?.toLowerCase() ?? '') == (widget.anime.title?.toLowerCase() ?? ''), // Added null checks
           orElse: () => searchResults.first,
         );
       }
 
       if (foundAnime != null) {
-        final episodes = await selectedSource.fetchEpisodeList(foundAnime.url);
+        final episodes = await selectedSource.fetchEpisodeList(foundAnime.url!); // Added !
         setState(() {
           _episodes = episodes;
           _isLoading = false;
@@ -181,13 +181,13 @@ class _AnimeDetailScreenState extends State<AnimeDetailScreen> {
                       pinned: true,
                       backgroundColor: Colors.black,
                       flexibleSpace: FlexibleSpaceBar(
-                        title: Text(widget.anime.title),
+                        title: Text(widget.anime.title ?? 'Untitled', softWrap: true, maxLines: 2), // Added null check
                         background: Stack(
                           fit: StackFit.expand,
                           children: [
                             if (widget.anime.thumbnailUrl != null)
                               CachedNetworkImage(
-                                imageUrl: widget.anime.thumbnailUrl!,
+                                imageUrl: widget.anime.thumbnailUrl!, // Still asserting non-null
                                 fit: BoxFit.cover,
                               ),
                             Container(
@@ -234,7 +234,7 @@ class _AnimeDetailScreenState extends State<AnimeDetailScreen> {
                               child: ListTile(
                                 contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                                 title: Text(
-                                  episode.title ?? 'Unknown Episode',
+                                  episode.title,
                                   style: const TextStyle(fontWeight: FontWeight.bold),
                                 ),
                                 subtitle: Text('Episode ${episode.episodeNumber.toStringAsFixed(0)}'),

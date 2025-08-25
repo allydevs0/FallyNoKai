@@ -38,10 +38,11 @@ class AnimeCard extends StatelessWidget {
           Padding(
             padding: const EdgeInsets.all(8.0),
             child: Text(
-              anime.title,
+              anime.title ?? 'Untitled', // Added null check
               textAlign: TextAlign.center,
               maxLines: 2,
               overflow: TextOverflow.ellipsis,
+              softWrap: true,
               style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold),
             ),
           ),
