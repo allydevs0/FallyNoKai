@@ -3,10 +3,14 @@ import 'package:provider/provider.dart';
 import 'package:anime/screens/history_screen.dart';
 import 'package:anime/screens/home_screen.dart';
 import 'package:anime/screens/favorites_screen.dart';
+import 'package:anime/screens/settings_screen.dart';
+import 'package:anime/screens/splash_screen.dart';
 import 'package:anime/services/theme_service.dart';
 import 'package:anime/services/favorite_service.dart';
 import 'package:anime/services/history_service.dart';
 import 'package:anime/services/player_selection_service.dart';
+import 'package:anime/services/source_selection_service.dart';
+import 'package:anime/services/settings_service.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:media_kit/media_kit.dart';
 import 'package:anime/services/anime_scraper.dart';
@@ -16,9 +20,12 @@ final ThemeService themeService = ThemeService();
 final FavoriteService favoriteService = FavoriteService();
 final HistoryService historyService = HistoryService();
 final PlayerSelectionService playerSelectionService = PlayerSelectionService();
+final SourceSelectionService sourceSelectionService = SourceSelectionService();
+final SettingsService settingsService = SettingsService();
 
 // GlobalKey para Snackbar
-final GlobalKey<ScaffoldMessengerState> scaffoldMessengerKey = GlobalKey<ScaffoldMessengerState>();
+final GlobalKey<ScaffoldMessengerState> scaffoldMessengerKey =
+    GlobalKey<ScaffoldMessengerState>();
 final AnimeScraper animeScraper = AnimeScraper();
 
 void main() async {
@@ -30,21 +37,21 @@ void main() async {
   await themeService.init();
   await favoriteService.init();
   await historyService.init();
+  await settingsService.init();
 
   runApp(
-MultiProvider(
-  providers: [
-    ChangeNotifierProvider(create: (_) => playerSelectionService),
-    Provider<FavoriteService>.value(value: favoriteService),
-    Provider<HistoryService>.value(value: historyService),
-    Provider<AnimeScraper>.value(value: animeScraper), // <- agora funciona
-  ],
-  child: const MyApp(),
-)
-
-
-
-,
+    MultiProvider(
+      providers: [
+        ChangeNotifierProvider(create: (_) => playerSelectionService),
+        Provider<FavoriteService>.value(value: favoriteService),
+        Provider<HistoryService>.value(value: historyService),
+        Provider<AnimeScraper>.value(value: animeScraper),
+        Provider<ThemeService>.value(value: themeService),
+        ChangeNotifierProvider(create: (_) => sourceSelectionService),
+        ChangeNotifierProvider(create: (_) => settingsService),
+      ],
+      child: const MyApp(),
+    ),
   );
 }
 
@@ -53,15 +60,13 @@ class MyApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return ValueListenableBuilder<ThemeMode>(
-      valueListenable: themeService.themeMode,
-      builder: (context, themeMode, child) {
+    return ValueListenableBuilder<String>(
+      valueListenable: themeService.currentThemeName,
+      builder: (context, themeName, child) {
         return MaterialApp(
           title: 'Anime Scraper',
-          themeMode: themeMode,
-          theme: ThemeData.light().copyWith(primaryColor: Colors.blue),
-          darkTheme: ThemeData.dark().copyWith(primaryColor: Colors.blue),
-          home: const MainScreen(),
+          theme: themeService.currentThemeData,
+          home: const SplashScreen(),
           scaffoldMessengerKey: scaffoldMessengerKey,
         );
       },
@@ -87,11 +92,8 @@ class _MainScreenState extends State<MainScreen> {
     _widgetOptions = <Widget>[
       HomeScreen(),
       const FavoritesScreen(),
-      const HistoryScreen(historyEpisodes: []),
-      // Placeholder enquanto a tela de Histórico não é implementada
-      Center(child: Text('Histórico ainda não implementado')),
-      // Placeholder para a tela de Mais..
-      Center(child: Text('Mais.. ainda não implementado')),
+      const HistoryScreen(),
+      const SettingsScreen(),
     ];
   }
 
@@ -109,10 +111,12 @@ class _MainScreenState extends State<MainScreen> {
       ),
       bottomNavigationBar: BottomNavigationBar(
         items: const [
-          BottomNavigationBarItem(icon: Icon(Icons.home), label: 'Home'),
-          BottomNavigationBarItem(icon: Icon(Icons.favorite), label: 'Favoritos'),
-          BottomNavigationBarItem(icon: Icon(Icons.history), label: 'Histórico'),
-          BottomNavigationBarItem(icon: Icon(Icons.settings), label: 'Mais..'),
+          BottomNavigationBarItem(icon: Icon(Icons.home), label: 'Explorar'),
+          BottomNavigationBarItem(
+              icon: Icon(Icons.favorite), label: 'Favoritos'),
+          BottomNavigationBarItem(
+              icon: Icon(Icons.history), label: 'Histórico'),
+          BottomNavigationBarItem(icon: Icon(Icons.more_horiz), label: 'Mais'),
         ],
         currentIndex: _selectedIndex,
         selectedItemColor: Colors.blue,

@@ -212,10 +212,10 @@ class DefaultAnimeScraper implements AnimeSource {
                         imgElement?.attributes['src'] ?? '';
         
         // Extrair gêneros
-        String genre = '';
+        List<String> genres = [];
         if (infos != null) {
           final genreElements = infos.querySelectorAll('a.spanGeneros');
-          genre = genreElements.map((e) => e.text.trim()).join(', ');
+          genres = genreElements.map((e) => e.text.trim()).toList();
         }
         
         // Extrair descrição
@@ -262,7 +262,7 @@ class DefaultAnimeScraper implements AnimeSource {
           thumbnailUrl: imageUrl,
           description: description,
           url: animeUrl,
-          genre: genre.isNotEmpty ? genre : null,
+          genres: genres,
         );
       } else {
         throw Exception('Failed to load anime details: ${response.statusCode}');
@@ -456,10 +456,10 @@ class DefaultAnimeScraper implements AnimeSource {
 
         // Ordenar por qualidade (720p primeiro, depois 360p)
         videos.sort((a, b) {
-          if (a.quality.contains('720p')) return -1;
-          if (b.quality.contains('720p')) return 1;
-          if (a.quality.contains('360p')) return -1;
-          if (b.quality.contains('360p')) return 1;
+          if (a.quality?.contains('720p') ?? false) return -1;
+          if (b.quality?.contains('720p') ?? false) return 1;
+          if (a.quality?.contains('360p') ?? false) return -1;
+          if (b.quality?.contains('360p') ?? false) return 1;
           return 0;
         });
 

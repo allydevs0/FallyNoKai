@@ -1,23 +1,23 @@
 workflows:
   ios-workflow:
-    name: iOS Build (Simulador e Dispositivo)
+    name: iOS Build
     environment:
       flutter: stable
       xcode: 16.4
       cocoapods: default
-      java: 17
-      node: latest
+      groups:
+        - codemagic-signing
     scripts:
-      - name: Switch Xcode
-        script: sudo xcode-select --switch /Applications/Xcode-16.4.app/Contents/Developer
+      - name: Set up code signing
+        script: |
+          keychain initialize
+          keychain add-certificates --certificate-password $CM_CERTIFICATE_PASSWORD
+          keychain use-login
       - name: Install dependencies
         script: |
           flutter pub get
           pod install --project-directory=ios
-      - name: Build iOS for simulator
-        script: flutter build ios --simulator --no-codesign --release
-      - name: Build iOS for device
-        script: flutter build ios --release
+      - name: Build iOS
+        script: flutter build ios --release --no-codesign
     artifacts:
-      - build/ios/iphoneos/Runner.app
-      - build/ios/iphonesimulator/Runner.app
+      - build/ios/ipa/*.ipa

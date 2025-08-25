@@ -1,104 +1,53 @@
-// lib/models/anime_model.dart
-import 'dart:convert';
+import 'video_model.dart';
 
 class Anime {
-  final String title;
-  final String? thumbnailUrl;
-  final String? bannerImageUrl;
-  final String description;
-  final String url;
-  final String? genre;
-  final int? status;
-  final String? author;
-  final double? score;
+  String? url;
+  String? title;
+  String? thumbnailUrl;
+  String? description;
+  List<String>? genres;
+  List<Video>? videos;
+  String? bannerImageUrl; // Added bannerImageUrl
 
   Anime({
-    required this.title,
+    this.url,
+    this.title,
     this.thumbnailUrl,
-    this.bannerImageUrl,
-    this.description = 'N/A',
-    required this.url,
-    this.genre,
-    this.status,
-    this.author,
-    this.score,
+    this.description,
+    this.genres,
+    this.videos,
+    this.bannerImageUrl, // Added to constructor
   });
 
-  /// Compatibilidade: usa `url` como identificador único do anime.
-  String get id => url;
-
-  /// Serializa para Map (usado por HistoryEntry.toMap(), SharedPreferences, etc.)
-  Map<String, dynamic> toMap() => {
-        'title': title,
-        'thumbnailUrl': thumbnailUrl,
-        'bannerImageUrl': bannerImageUrl,
-        'description': description,
-        'url': url,
-        'genre': genre,
-        'status': status,
-        'author': author,
-        'score': score,
-      };
-
-  /// Serializa para JSON (String)
-  String toJson() => jsonEncode(toMap());
-
-  /// Cria a partir de Map (quando deserializar do SharedPreferences / arquivo)
+  // fromMap constructor
   factory Anime.fromMap(Map<String, dynamic> map) {
-    double? parseScore(dynamic v) {
-      if (v == null) return null;
-      if (v is double) return v;
-      if (v is int) return v.toDouble();
-      if (v is String) return double.tryParse(v);
-      if (v is num) return v.toDouble();
-      return null;
-    }
-
-    int? parseInt(dynamic v) {
-      if (v == null) return null;
-      if (v is int) return v;
-      if (v is String) return int.tryParse(v);
-      return null;
-    }
-
     return Anime(
-      title: map['title']?.toString() ?? 'N/A',
+      url: map['url'] as String?,
+      title: map['title'] as String?,
       thumbnailUrl: map['thumbnailUrl'] as String?,
+      description: map['description'] as String?,
+      genres: (map['genres'] as List<dynamic>?)?.map((e) => e as String).toList(),
+      videos: (map['videos'] as List<dynamic>?)?.map((e) => Video.fromMap(e as Map<String, dynamic>)).toList(),
       bannerImageUrl: map['bannerImageUrl'] as String?,
-      description: map['description']?.toString() ?? 'N/A',
-      url: map['url']?.toString() ?? '',
-      genre: map['genre'] as String?,
-      status: parseInt(map['status']),
-      author: map['author'] as String?,
-      score: parseScore(map['score']),
     );
   }
 
-  /// Cria a partir de JSON (String)
-  factory Anime.fromJson(String source) =>
-      Anime.fromMap(jsonDecode(source) as Map<String, dynamic>);
-
-  Anime copyWith({
-    String? title,
-    String? thumbnailUrl,
-    String? bannerImageUrl,
-    String? description,
-    String? url,
-    String? genre,
-    int? status,
-    String? author,
-    double? score,
-  }) {
-    return Anime(
-      title: title ?? this.title,
-      thumbnailUrl: thumbnailUrl ?? this.thumbnailUrl,
-      bannerImageUrl: bannerImageUrl ?? this.bannerImageUrl,
-      description: description ?? this.description,
-      url: url ?? this.url,
-      genre: genre ?? this.genre,
-      status: status ?? this.status,
-      author: author ?? this.author,
-      score: score ?? this.score,
-    );
+  // toMap method
+  Map<String, dynamic> toMap() {
+    return {
+      'url': url,
+      'title': title,
+      'thumbnailUrl': thumbnailUrl,
+      'description': description,
+      'genres': genres,
+      'videos': videos?.map((e) => e.toMap()).toList(),
+      'bannerImageUrl': bannerImageUrl,
+    };
   }
+
+  // fromJson factory (uses fromMap)
+  factory Anime.fromJson(Map<String, dynamic> json) => Anime.fromMap(json);
+
+  // toJson method (uses toMap)
+  Map<String, dynamic> toJson() => toMap();
 }

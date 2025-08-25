@@ -189,7 +189,7 @@ class AnimeFireSource implements AnimeSource {
   @override
   final String name = "Anime Fire";
   @override
-  final String baseUrl = "https://animefire.plus";
+    final String baseUrl = "https://animefire.plus";
   @override
   final bool supportsLatest = true;
 
@@ -200,6 +200,7 @@ class AnimeFireSource implements AnimeSource {
   Map<String, String> get _headers => {
         "Referer": baseUrl,
         "Accept-Language": "pt-BR,pt;q=0.9,en-US;q=0.8,en;q=0.7",
+        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/108.0.0.0 Safari/537.36",
       };
 
   @override
@@ -283,10 +284,8 @@ class AnimeFireSource implements AnimeSource {
       title: names.querySelector("h1")!.text,
       thumbnailUrl: content.querySelector("div.sub_animepage_img > img")?.attributes['data-src'],
       url: url,
-      genre: infos.querySelectorAll("a.spanGeneros").map((e) => e.text).join(", "),
-      status: _parseStatus(infos.getInfo("Status")),
+      genres: infos.querySelectorAll("a.spanGeneros").map((e) => e.text).toList(),
       description: description.toString(),
-      author: infos.getInfo("Estúdios"),
     );
   }
 

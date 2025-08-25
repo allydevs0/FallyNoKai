@@ -30,7 +30,7 @@ class GoyabuSource implements AnimeSource {
   // Headers
   Map<String, String> get _headers => {
         'Referer': baseUrl,
-        'Origin': baseUrl,
+        'Origin': baseUrl.substring(0, baseUrl.length - 1),
         'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36',
         'Accept-Language': 'pt-BR,pt;q=0.9,en-US;q=0.8,en;q=0.7',
       };
@@ -38,7 +38,7 @@ class GoyabuSource implements AnimeSource {
   // ============================== Popular ===============================
   @override
   Future<List<Anime>> fetchPopularAnime(int page) async {
-    final response = await _client.get(Uri.parse("\$baseUrl/home-2"), headers: _headers);
+    final response = await _client.get(Uri.parse("$baseUrl/home-2"), headers: _headers);
     if (response.statusCode == 200) {
       final document = parse(response.body);
       final animeElements = document.querySelectorAll("article.boxAN a");
@@ -53,14 +53,14 @@ class GoyabuSource implements AnimeSource {
         );
       }).toList();
     } else {
-      throw Exception('Failed to load popular anime: \${response.statusCode}');
+      throw Exception('Failed to load popular anime: ${response.statusCode}');
     }
   }
 
   // =============================== Latest ===============================
   @override
   Future<List<Anime>> fetchLatestUpdates(int page) async {
-    final response = await _client.get(Uri.parse("\$baseUrl/home-2"), headers: _headers);
+    final response = await _client.get(Uri.parse("$baseUrl/home-2"), headers: _headers);
     if (response.statusCode == 200) {
       final document = parse(response.body);
       final animeElements = document.querySelectorAll("article.boxEP a");
@@ -75,7 +75,7 @@ class GoyabuSource implements AnimeSource {
         );
       }).toList();
     } else {
-      throw Exception('Failed to load latest updates: \${response.statusCode}');
+      throw Exception('Failed to load latest updates: ${response.statusCode}');
     }
   }
 
@@ -85,12 +85,13 @@ class GoyabuSource implements AnimeSource {
     // Goyabu.kt uses a special "path:" prefix for direct path searches.
     // For now, we'll implement the standard query search.
     // If the query starts with "path:", we might need a different approach.
-    final searchUrl = "\$baseUrl/page/\$page?s=\$query"; // Simplified for now
+    final searchUrl = "${baseUrl}page/$page?s=$query";
+
 
     final response = await _client.get(Uri.parse(searchUrl), headers: _headers);
     if (response.statusCode == 200) {
       final document = parse(response.body);
-      final animeElements = document.querySelectorAll("article.boxAN a"); // Same selector as popular
+      final animeElements = document.querySelectorAll("article.boxAN a");
       return animeElements.map((element) {
         final url = element.attributes['href'] ?? '';
         final title = element.querySelector("div.title")?.text.trim() ?? '';
@@ -102,7 +103,7 @@ class GoyabuSource implements AnimeSource {
         );
       }).toList();
     } else {
-      throw Exception('Failed to load search results: \${response.statusCode}');
+      throw Exception('Failed to load search results: ${response.statusCode}');
     }
   }
 
@@ -117,17 +118,17 @@ class GoyabuSource implements AnimeSource {
       final thumbnailUrl = document.querySelector("div.animecapa img")?.attributes['src'];
       final description = document.querySelector("div.sinopse")?.text.trim() ?? 'No description available.';
       final genreElements = document.querySelectorAll("ul.genres li");
-      final genre = genreElements.map((e) => e.text.trim()).join(', ');
+      final genres = genreElements.map((e) => e.text.trim()).toList();
 
       return Anime(
         title: title,
         url: animeUrl,
         thumbnailUrl: thumbnailUrl,
         description: description,
-        genre: genre.isNotEmpty ? genre : null,
+        genres: genres,
       );
     } else {
-      throw Exception('Failed to load anime details: \${response.statusCode}');
+      throw Exception('Failed to load anime details: ${response.statusCode}');
     }
   }
 
@@ -159,9 +160,9 @@ class GoyabuSource implements AnimeSource {
           ));
         }
       }
-      return episodes.reversed.toList(); // Reverse as in Kotlin
+      return episodes.reversed.toList(); // Reversed as in Kotlin
     } else {
-      throw Exception('Failed to load episode list: \${response.statusCode}');
+      throw Exception('Failed to load episode list: ${response.statusCode}');
     }
   }
 
@@ -188,7 +189,7 @@ class GoyabuSource implements AnimeSource {
       }
       return videos;
     } else {
-      throw Exception('Failed to load video links: \${response.statusCode}');
+      throw Exception('Failed to load video links: ${response.statusCode}');
     }
   }
 
