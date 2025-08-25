@@ -1,4 +1,4 @@
-package com.example.anime
+package com.allydevs.animeskai
 
 import io.flutter.embedding.android.FlutterActivity
 
