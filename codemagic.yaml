@@ -1,28 +1,17 @@
 workflows:
-  ios-release:
-    name: iOS Release
+  ios-release-nosign:
+    name: iOS Release (No Sign)
     environment:
       flutter: stable
       xcode: 16.4
       cocoapods: default
-      groups:
-        - codemagic-signing
     scripts:
-      - name: Set up code signing
-        script: |
-          # Inicializa keychain temporário
-          keychain initialize
-          # Adiciona certificados já carregados no Codemagic (Distribution)
-          keychain add-certificates --certificate-password $CM_CERTIFICATE_PASSWORD
-          keychain use-login
-          # Lista profiles para debug
-          keychain list-profiles
       - name: Install dependencies
         script: |
           flutter pub get
           pod install --project-directory=ios
-      - name: Build iOS Release
+      - name: Build iOS Release (No Sign)
         script: |
-          flutter build ios --release
+          flutter build ios --release --no-codesign
     artifacts:
       - build/ios/ipa/*.ipa
