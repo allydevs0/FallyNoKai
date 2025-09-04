@@ -12,13 +12,17 @@ workflows:
           pod install --project-directory=ios
       - name: Build iOS Release (No Sign)
         script: |
+          # Build sem código de assinatura
           flutter build ios --release --no-codesign
-      - name: Export IPA
-        script: |
+
+          # Cria pasta de artifacts
           mkdir -p build/ios/ipa
-          xcodebuild -exportArchive \
-            -archivePath build/ios/archive/Runner.xcarchive \
-            -exportPath build/ios/ipa \
-            -exportOptionsPlist ios/ExportOptions.plist
+
+          # Converte .app para .ipa (zip)
+          APP_DIR="build/ios/Release-iphoneos"
+          for app in "$APP_DIR"/*.app; do
+            app_name=$(basename "$app" .app)
+            zip -r "build/ios/ipa/${app_name}.ipa" "$app"
+          done
     artifacts:
       - build/ios/ipa/*.ipa
