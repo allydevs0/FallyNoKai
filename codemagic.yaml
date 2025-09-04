@@ -7,11 +7,10 @@ workflows:
       cocoapods: default
       groups:
         - codemagic-signing
-    cache:
-      key: flutter-stable
-      paths:
-        - ~/.pub-cache
-        - ios/Pods
+      cache:
+        flutter: true
+        cocoapods: true
+        pub: true
     scripts:
       - name: Set up code signing
         script: |
