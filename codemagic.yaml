@@ -7,19 +7,30 @@ workflows:
       cocoapods: default
       groups:
         - codemagic-signing
+      cache:
+        key: flutter-stable
     scripts:
       - name: Set up code signing
         script: |
+          # Inicializa o keychain do Codemagic
           keychain initialize
           keychain add-certificates --certificate-password $CM_CERTIFICATE_PASSWORD
           keychain use-login
+          # Define profiles automaticamente
+          keychain list-profiles
       - name: Install dependencies
         script: |
           flutter pub get
           pod install --project-directory=ios
-      - name: Build iOS
-        script: flutter build ios --release
+      - name: Build iOS Release
+        script: |
+          flutter build ios --release
     artifacts:
       - build/ios/ipa/*.ipa
     publishing:
       - provider: ios-app-store
+        api_key:
+          key_id: $APP_STORE_KEY_ID
+          issuer_id: $APP_STORE_ISSUER_ID
+          private_key: $APP_STORE_PRIVATE_KEY
+        app_id: $APP_STORE_APP_ID
