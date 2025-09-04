@@ -1,6 +1,6 @@
 workflows:
-  ios-workflow:
-    name: iOS Build
+  ios-release:
+    name: iOS Release
     environment:
       flutter: stable
       xcode: 16.4
@@ -10,14 +10,19 @@ workflows:
     scripts:
       - name: Set up code signing
         script: |
+          # Inicializa keychain temporário
           keychain initialize
+          # Adiciona certificados já carregados no Codemagic (Distribution)
           keychain add-certificates --certificate-password $CM_CERTIFICATE_PASSWORD
           keychain use-login
+          # Lista profiles para debug
+          keychain list-profiles
       - name: Install dependencies
         script: |
           flutter pub get
           pod install --project-directory=ios
       - name: Build iOS Release
-        script: flutter build ios --release
+        script: |
+          flutter build ios --release
     artifacts:
       - build/ios/ipa/*.ipa
