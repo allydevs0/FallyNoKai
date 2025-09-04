@@ -1,0 +1,46 @@
+name: iOS-sim-build
+
+on:
+  workflow_dispatch:
+
+jobs:
+  build-ios-sim:
+    name: 🖥 Simulator Build
+    runs-on: macos-14
+    steps:
+      - uses: actions/checkout@v3
+
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: 'stable'
+          architecture: x64
+
+      - run: flutter pub get
+
+      - name: Update pods
+        run: |
+          cd ios
+          pod repo update
+          pod install
+
+      - name: Check Xcode version and SDKs
+        run: |
+          xcodebuild -version
+          xcodebuild -showsdks
+
+      - name: Build iOS simulator
+        run: flutter build ios --simulator
+
+      - name: List build folder (debug)
+        run: ls -R build/ios/iphonesimulator
+
+      - name: Archive .app
+        run: |
+          cd build/ios/iphonesimulator
+          zip -r FlutterAppSim.zip Runner.app
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: FlutterAppSim
+          path: build/ios/iphonesimulator/FlutterAppSim.zip
