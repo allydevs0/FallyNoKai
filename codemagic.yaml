@@ -18,9 +18,8 @@ workflows:
           flutter pub get
           pod install --project-directory=ios
       - name: Build iOS
-        script: |
-          flutter build ios --release \
-            --export-method app-store \
-            --codesign
+        script: flutter build ios --release
     artifacts:
       - build/ios/ipa/*.ipa
+    publishing:
+      - provider: ios-app-store
